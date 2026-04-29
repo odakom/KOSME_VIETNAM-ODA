@@ -1,12 +1,13 @@
 import { CalendarDays, Check, Download, Pencil, Send, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { GanttChart } from "../components/dashboard/GanttChart";
 import { ProgressBar } from "../components/ProgressBar";
 import { StatCard } from "../components/StatCard";
 import { downloadFile, hasDownloadableFile } from "../services/fileService";
 import { useComments } from "../services/useComments";
-import type { AppData, ClientComment } from "../types";
+import type { AppData, ClientComment, Task, TaskDeliverable } from "../types";
+import { getClientCommentsByTarget, getClientVisibleComments, getClientVisibleDeliverables, getClientVisibleTasks } from "../utils/clientView";
 import { daysBetween, todayIso } from "../utils/date";
 import { calculateIntegratedProgress, calculateScheduleProgress, calculateTaskProgress, formatProgress } from "../utils/progress";
 import { getUpcomingTasks } from "../utils/schedule";
@@ -14,10 +15,11 @@ import { getUpcomingTasks } from "../utils/schedule";
 type ClientView = "dashboard" | "schedule" | "deliverables" | "comments";
 
 export function ClientDashboard({ data, setData, view = "dashboard" }: { data: AppData; setData: (data: AppData) => void; view?: ClientView }) {
-  const visibleTasks = data.tasks.filter((task) => task.isVisibleToClient !== false);
-  const publicDeliverables = data.taskDeliverables.filter((item) => item.isVisibleToClient);
   const commentsApi = useComments(data, setData);
-  const unprocessedComments = commentsApi.comments.filter((comment) => ["접수", "검토중", "반영중"].includes(comment.status));
+  const visibleTasks = useMemo(() => getClientVisibleTasks(data.tasks), [data.tasks]);
+  const publicDeliverables = useMemo(() => getClientVisibleDeliverables(data.taskDeliverables), [data.taskDeliverables]);
+  const clientComments = useMemo(() => getClientVisibleComments(commentsApi.comments), [commentsApi.comments]);
+  const unprocessedComments = clientComments.filter((comment) => ["접수", "검토중", "반영중"].includes(comment.status));
   const taskProgress = calculateTaskProgress(visibleTasks);
   const scheduleProgress = calculateScheduleProgress(data.contract.periodStart, data.contract.periodEnd);
   const progress = calculateIntegratedProgress(taskProgress, scheduleProgress);
@@ -40,7 +42,7 @@ export function ClientDashboard({ data, setData, view = "dashboard" }: { data: A
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h2 className="font-semibold text-ink">통합 진행률</h2>
-          <p className="text-xs text-slate-500">과업 70% + 일정 30%</p>
+          <p className="text-xs text-slate-500">과업 상태 70% + 일정 경과 30% 기준</p>
         </div>
         <span className="text-lg font-bold text-public">{formatProgress(progress)}%</span>
       </div>
@@ -57,11 +59,11 @@ export function ClientDashboard({ data, setData, view = "dashboard" }: { data: A
           return (
             <div key={task.id} className={`rounded-md border p-3 ${dday <= 7 ? "border-amber-200 bg-amber-50" : "border-slate-100 bg-slate-50"}`}>
               <div className="font-semibold text-slate-800">{task.title}</div>
-              <div className="text-sm text-slate-500">마감일 {task.dueDate} · {dday === 0 ? "D-day" : `D-${dday}`}</div>
+              <div className="text-sm text-slate-500">마감일 {task.dueDate} · {dday < 0 ? `D+${Math.abs(dday)}` : dday === 0 ? "D-day" : `D-${dday}`}</div>
             </div>
           );
         })}
-        {upcomingTasks.length === 0 ? <div className="rounded-md bg-slate-50 p-4 text-sm text-slate-500">예정된 과업 마감일이 없습니다.</div> : null}
+        {upcomingTasks.length === 0 ? <div className="rounded-md bg-slate-50 p-4 text-sm text-slate-500">예정된 공개 과업 일정이 없습니다.</div> : null}
       </div>
     </section>
   );
@@ -72,14 +74,13 @@ export function ClientDashboard({ data, setData, view = "dashboard" }: { data: A
       <div className="space-y-3">
         {publicDeliverables.map((item) => {
           const targetTitle = item.title || item.originalFileName || item.fileName || "산출물";
-          const itemComments = commentsApi.getByTarget("deliverable", item.id);
+          const itemComments = getClientCommentsByTarget(clientComments, "deliverable", item.id);
           return (
             <div key={item.id} className="rounded-md border border-slate-100 bg-slate-50 p-3">
               <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div>
                   <div className="font-semibold text-slate-800">{targetTitle}</div>
                   <div className="text-sm text-slate-500">{item.originalFileName || item.fileName || "파일명 없음"} · {item.version} · {item.status}</div>
-                  {item.fileName && !item.fileData && !item.filePath && (!item.fileUrl || item.fileUrl === "#") ? <div className="text-xs font-semibold text-amber-600">파일 원본 없음</div> : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {hasDownloadableFile(item) ? (
@@ -87,7 +88,7 @@ export function ClientDashboard({ data, setData, view = "dashboard" }: { data: A
                       <Download size={16} /> 다운로드
                     </button>
                   ) : (
-                    <span className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-400">파일 없음</span>
+                    <span className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-400">파일 원본 없음</span>
                   )}
                   <Link to={`/client/comments?target=deliverable:${item.id}`} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-ink">
                     의견 남기기
@@ -100,7 +101,7 @@ export function ClientDashboard({ data, setData, view = "dashboard" }: { data: A
                     <div key={comment.id} className="rounded-md bg-white p-3 text-sm">
                       <div className="flex flex-wrap justify-between gap-2"><span className="font-semibold text-slate-800">{comment.authorName}</span><span className="text-xs font-semibold text-public">{comment.status}</span></div>
                       <p className="mt-1 text-slate-600">{comment.content}</p>
-                      {comment.response ? <p className="mt-2 text-slate-500">답변: {comment.response}</p> : null}
+                      {comment.response ? <p className="mt-2 text-slate-500">답변/반영 내용: {comment.response}</p> : null}
                     </div>
                   ))}
                 </div>
@@ -113,7 +114,7 @@ export function ClientDashboard({ data, setData, view = "dashboard" }: { data: A
     </section>
   );
 
-  const commentsSection = <ClientCommentForm data={data} commentsApi={commentsApi} visibleTasks={visibleTasks} publicDeliverables={publicDeliverables} />;
+  const commentsSection = <ClientCommentForm data={data} commentsApi={commentsApi} visibleTasks={visibleTasks} publicDeliverables={publicDeliverables} clientComments={clientComments} />;
 
   if (view === "schedule") return <div className="space-y-6">{projectOverview}{progressSection}{scheduleSection}<GanttChart tasks={visibleTasks} title="발주처 일정 간트차트" readOnly visibleOnly /></div>;
   if (view === "deliverables") return <div className="space-y-6">{deliverablesSection}</div>;
@@ -124,7 +125,7 @@ export function ClientDashboard({ data, setData, view = "dashboard" }: { data: A
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard label="프로젝트" value="ODA 종료평가" hint={data.contract.client} />
         <StatCard label="최종 납품 D-day" value={`D-${Math.max(daysBetween(todayIso(), data.contract.deliveryDue), 0)}`} hint={data.contract.deliveryDue} />
-        <StatCard label="미처리 의견" value={`${unprocessedComments.length}건`} hint="접수·검토중·반영중 기준" />
+        <StatCard label="미처리 의견" value={`${unprocessedComments.length}건`} hint="접수/검토중/반영중 기준" />
       </div>
       {projectOverview}
       {progressSection}
@@ -135,7 +136,13 @@ export function ClientDashboard({ data, setData, view = "dashboard" }: { data: A
   );
 }
 
-function ClientCommentForm({ data, commentsApi, visibleTasks, publicDeliverables }: { data: AppData; commentsApi: ReturnType<typeof useComments>; visibleTasks: AppData["tasks"]; publicDeliverables: AppData["taskDeliverables"] }) {
+function ClientCommentForm({ data, commentsApi, visibleTasks, publicDeliverables, clientComments }: {
+  data: AppData;
+  commentsApi: ReturnType<typeof useComments>;
+  visibleTasks: Task[];
+  publicDeliverables: TaskDeliverable[];
+  clientComments: ClientComment[];
+}) {
   const [searchParams] = useSearchParams();
   const [author, setAuthor] = useState("발주처");
   const [targetKey, setTargetKey] = useState(searchParams.get("target") ?? "project:project");
@@ -146,22 +153,22 @@ function ClientCommentForm({ data, commentsApi, visibleTasks, publicDeliverables
   const [editingCommentId, setEditingCommentId] = useState("");
   const [editingContent, setEditingContent] = useState("");
 
-  const targetOptions = [
+  const targetOptions = useMemo(() => [
     { key: "project:project", type: "project" as const, id: "project", title: data.contract.name, label: "프로젝트 전체 의견" },
     ...visibleTasks.map((task) => ({ key: `task:${task.id}`, type: "task" as const, id: task.id, title: task.title, label: `과업 · ${task.title}` })),
     ...publicDeliverables.map((item) => {
       const title = item.title || item.originalFileName || item.fileName || "공개 산출물";
       return { key: `deliverable:${item.id}`, type: "deliverable" as const, id: item.id, title, label: `산출물 · ${title}` };
     })
-  ];
+  ], [data.contract.name, publicDeliverables, visibleTasks]);
+
   useEffect(() => {
     const queryTarget = searchParams.get("target");
-    if (queryTarget && targetOptions.some((option) => option.key === queryTarget)) {
-      setTargetKey(queryTarget);
-    }
+    if (queryTarget && targetOptions.some((option) => option.key === queryTarget)) setTargetKey(queryTarget);
   }, [searchParams, targetOptions]);
+
   const selectedTarget = targetOptions.find((option) => option.key === targetKey) ?? targetOptions[0];
-  const visibleComments = commentsApi.comments
+  const visibleComments = clientComments
     .filter((comment) => filterType === "전체" || comment.targetType === filterType)
     .filter((comment) => filterStatus === "전체" || comment.status === filterStatus)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -169,7 +176,8 @@ function ClientCommentForm({ data, commentsApi, visibleTasks, publicDeliverables
   const submit = async () => {
     const trimmed = content.trim();
     if (!trimmed) return;
-    const comment: ClientComment = {
+    const now = new Date().toISOString();
+    await commentsApi.add({
       id: `com-${Date.now()}`,
       targetType: selectedTarget.type,
       targetId: selectedTarget.id,
@@ -178,17 +186,16 @@ function ClientCommentForm({ data, commentsApi, visibleTasks, publicDeliverables
       authorRole: "client",
       content: trimmed,
       status: "접수",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
       response: "",
       respondedBy: "",
       respondedAt: "",
       reflectedLocation: "",
       holdReason: ""
-    };
-    await commentsApi.add(comment);
+    });
     setContent("");
-    setSavedMessage("의견이 저장되었습니다");
+    setSavedMessage("의견이 저장되었습니다.");
   };
 
   const startEdit = (comment: ClientComment) => {
@@ -208,13 +215,13 @@ function ClientCommentForm({ data, commentsApi, visibleTasks, publicDeliverables
     await commentsApi.update(comment.id, { content: trimmed });
     setEditingCommentId("");
     setEditingContent("");
-    setSavedMessage("의견이 수정되었습니다");
+    setSavedMessage("의견이 수정되었습니다.");
   };
 
   const deleteComment = async (comment: ClientComment) => {
     if (!window.confirm("작성한 의견을 삭제하시겠습니까?")) return;
     await commentsApi.remove(comment.id);
-    setSavedMessage("의견이 삭제되었습니다");
+    setSavedMessage("의견이 삭제되었습니다.");
   };
 
   return (
@@ -258,11 +265,7 @@ function ClientCommentForm({ data, commentsApi, visibleTasks, publicDeliverables
               <div className="mt-1 text-xs text-slate-500">{comment.createdAt.slice(0, 10)} · {comment.authorName}</div>
               {editingCommentId === comment.id ? (
                 <div className="mt-3 space-y-2">
-                  <textarea
-                    className="min-h-24 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-public"
-                    value={editingContent}
-                    onChange={(event) => setEditingContent(event.target.value)}
-                  />
+                  <textarea className="min-h-24 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-public" value={editingContent} onChange={(event) => setEditingContent(event.target.value)} />
                   <div className="flex flex-wrap justify-end gap-2">
                     <button className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600" onClick={cancelEdit}>
                       <X size={14} /> 취소
@@ -279,6 +282,7 @@ function ClientCommentForm({ data, commentsApi, visibleTasks, publicDeliverables
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap gap-3">
                   {comment.targetType === "task" ? <Link to="/client/schedule" className="text-xs font-semibold text-public hover:underline">관련 과업 보기</Link> : null}
+                  {comment.targetType === "deliverable" ? <Link to="/client/deliverables" className="text-xs font-semibold text-public hover:underline">관련 산출물 보기</Link> : null}
                 </div>
                 {editingCommentId !== comment.id ? (
                   <div className="flex flex-wrap gap-2">

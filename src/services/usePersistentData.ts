@@ -59,7 +59,7 @@ export function usePersistentData() {
         if (!cancelled) {
           setData((current) => ({
             ...current,
-            taskDeliverables: taskDeliverables && taskDeliverables.length > 0 ? taskDeliverables : current.taskDeliverables
+            taskDeliverables: taskDeliverables ?? current.taskDeliverables
           }));
         }
       } catch (error) {
