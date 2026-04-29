@@ -67,11 +67,6 @@ function pageFromPath(pathname: string) {
   return segment === "checklist" ? "tasks" : segment;
 }
 
-function clientViewFromPath(pathname: string) {
-  const segment = pathname.replace(/^\/client\/?/, "").split("/")[0] || "dashboard";
-  return ["dashboard", "schedule", "deliverables", "comments"].includes(segment) ? segment as "dashboard" | "schedule" | "deliverables" | "comments" : "dashboard";
-}
-
 function Page({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-5">
@@ -602,11 +597,8 @@ function AdminLoginPage() {
 }
 
 function ClientPortal({ data, setData, refreshData, isLoading, error }: { data: AppData; setData: (data: AppData) => void; refreshData: () => Promise<void>; isLoading: boolean; error: string }) {
-  const navigate = useNavigate();
-  const location = useLocation();
   const [allowed, setAllowed] = useState(hasClientAccess());
   const [refreshing, setRefreshing] = useState(false);
-  const view = clientViewFromPath(location.pathname);
   useEffect(() => {
     if (!allowed) return;
     setRefreshing(true);
@@ -628,7 +620,7 @@ function ClientPortal({ data, setData, refreshData, isLoading, error }: { data: 
       {isLoading && !refreshing ? <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">Supabase 데이터를 불러오는 중입니다.</div> : null}
       {refreshing ? <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">Supabase 데이터를 다시 불러오는 중입니다.</div> : null}
       {error ? <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div> : null}
-        <ClientPreviewSurface data={data} setData={setData} view={view} />
+        <ClientPreviewSurface data={data} setData={setData} />
       </div>
     </div>
   );
