@@ -645,7 +645,7 @@ export default function App() {
       menu={adminMenu}
       onRoleChange={(nextRole) => {
         setRole(nextRole);
-        if (nextRole === "client") navigate("/client/dashboard");
+        if (nextRole === "client") navigate("/client-preview");
       }}
       onPageChange={(nextPage) => navigate(pathByPage[nextPage] ?? "/")}
       onReset={reset}
