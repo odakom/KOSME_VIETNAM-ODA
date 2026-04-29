@@ -7,6 +7,7 @@ import { localStorageRepository } from "./storage";
 import { getInitialLocalTasks, getTasks } from "./taskService";
 import type { AppData } from "../types";
 import { logDataError, validateTasks } from "../utils/dataSafety";
+import { initialData } from "../data/sampleData";
 
 function debugLog(message: string, meta?: unknown) {
   if (!import.meta.env.DEV) return;
@@ -18,16 +19,34 @@ function debugError(message: string, error: unknown) {
   if (import.meta.env.DEV) console.error(message, error);
 }
 
+function cloneInitialData(): AppData {
+  return JSON.parse(JSON.stringify(initialData)) as AppData;
+}
+
+function createSupabaseInitialData(): AppData {
+  return {
+    ...cloneInitialData(),
+    tasks: [],
+    taskDeliverables: [],
+    comments: [],
+    approvals: [],
+    risks: []
+  };
+}
+
 export function usePersistentData() {
   const repository = useMemo(() => localStorageRepository, []);
   const allowLocalFallback = !isSupabaseConfigured && import.meta.env.DEV;
   const [supabaseError, setSupabaseError] = useState(isSupabaseConfigured ? "" : "Supabase ?섍꼍蹂?섍? ?ㅼ젙?섏? ?딆븯?듬땲??");
-  const [data, setData] = useState<AppData>(() => ({
-    ...repository.load(),
-    tasks: allowLocalFallback ? getInitialLocalTasks() : [],
-    taskDeliverables: allowLocalFallback ? getInitialLocalTaskDeliverables() : [],
-    comments: allowLocalFallback ? getInitialLocalComments() : []
-  }));
+  const [data, setData] = useState<AppData>(() => {
+    if (isSupabaseConfigured) return createSupabaseInitialData();
+    return {
+      ...repository.load(),
+      tasks: allowLocalFallback ? getInitialLocalTasks() : [],
+      taskDeliverables: allowLocalFallback ? getInitialLocalTaskDeliverables() : [],
+      comments: allowLocalFallback ? getInitialLocalComments() : []
+    };
+  });
   const [isSupabaseLoading, setIsSupabaseLoading] = useState(isSupabaseConfigured);
 
   const refreshFromSupabase = useCallback(async () => {
@@ -83,7 +102,7 @@ export function usePersistentData() {
   }, []);
 
   useEffect(() => {
-    if (isSupabaseConfigured && data.tasks.length === 0) return;
+    if (isSupabaseConfigured) return;
     repository.save(data);
   }, [data, repository]);
 
@@ -102,7 +121,7 @@ export function usePersistentData() {
 
   const saveData = useCallback((nextData: AppData) => {
     validateTasks(nextData.tasks);
-    repository.save(nextData);
+    if (!isSupabaseConfigured) repository.save(nextData);
     setData(nextData);
     saveTaskDeliverables(nextData.taskDeliverables).catch((error) => {
       debugLog("Task deliverables save failed. App data fallback is preserved.", error);
