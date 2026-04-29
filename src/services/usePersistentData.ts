@@ -24,9 +24,10 @@ export function usePersistentData() {
   const [data, setData] = useState<AppData>(() => ({
     ...repository.load(),
     tasks: isSupabaseConfigured ? [] : getInitialLocalTasks(),
-    taskDeliverables: getInitialLocalTaskDeliverables(),
-    comments: getInitialLocalComments()
+    taskDeliverables: isSupabaseConfigured ? [] : getInitialLocalTaskDeliverables(),
+    comments: isSupabaseConfigured ? [] : getInitialLocalComments()
   }));
+  const [isSupabaseLoading, setIsSupabaseLoading] = useState(isSupabaseConfigured);
 
   const refreshFromSupabase = useCallback(async () => {
     if (!isSupabaseConfigured) {
@@ -35,14 +36,13 @@ export function usePersistentData() {
     }
 
     let nextError = "";
+    setIsSupabaseLoading(true);
     setSupabaseError("");
+    const nextData: Partial<AppData> = {};
 
     try {
       const tasks = await getTasks();
-      setData((current) => ({
-        ...current,
-        tasks: tasks ?? current.tasks
-      }));
+      if (tasks) nextData.tasks = tasks;
     } catch (error) {
       debugError("Supabase tasks load failed. Keeping current tasks.", error);
       logDataError("tasks.load", error);
@@ -51,10 +51,7 @@ export function usePersistentData() {
 
     try {
       const taskDeliverables = await getTaskDeliverables();
-      setData((current) => ({
-        ...current,
-        taskDeliverables: taskDeliverables ?? current.taskDeliverables
-      }));
+      if (taskDeliverables) nextData.taskDeliverables = taskDeliverables;
     } catch (error) {
       debugError("Supabase task deliverables load failed. Keeping current deliverables.", error);
       logDataError("deliverables.load", error);
@@ -63,7 +60,7 @@ export function usePersistentData() {
 
     try {
       const comments = await getComments();
-      setData((current) => ({ ...current, comments: comments ?? current.comments }));
+      if (comments) nextData.comments = comments;
     } catch (error) {
       debugError("Supabase comments load failed. Keeping current comments.", error);
       logDataError("comments.load", error);
@@ -72,14 +69,16 @@ export function usePersistentData() {
 
     try {
       const approvals = await loadApprovalsFromSupabase();
-      setData((current) => ({ ...current, approvals: approvals ?? current.approvals }));
+      if (approvals) nextData.approvals = approvals;
     } catch (error) {
       debugError("Supabase approvals load failed. Keeping current approvals.", error);
       logDataError("approvals.load", error);
       nextError ||= "?곗씠??濡쒕뱶 ?ㅽ뙣: Supabase approvals瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??";
     }
 
+    setData((current) => ({ ...current, ...nextData }));
     if (nextError) setSupabaseError(nextError);
+    setIsSupabaseLoading(false);
   }, []);
 
   useEffect(() => {
@@ -123,6 +122,6 @@ export function usePersistentData() {
     window.alert("?곗씠???덉젙?깆쓣 ?꾪빐 ?붾㈃ 珥덇린??湲곕뒫? 鍮꾪솢?깊솕?덉뒿?덈떎. Supabase ?곗씠?곕뒗 蹂寃쎈릺吏 ?딆뒿?덈떎.");
   };
 
-  return { data, setData: saveData, reset, supabaseError, refreshFromSupabase };
+  return { data, setData: saveData, reset, supabaseError, refreshFromSupabase, isSupabaseLoading };
 }
 
