@@ -1,0 +1,138 @@
+﻿{
+    "createdAt":  "2026-04-29T04:41:47.7868018+09:00",
+    "taskDeliverables":  {
+                             "value":  [
+                                           {
+                                               "id":  "e3765ebb-f6fa-4cb2-a5d9-4af780803070",
+                                               "task_id":  "9e6e190b-fbac-437e-b551-ab17351c637b",
+                                               "title":  "중진공_베트남_평가 용역 계획서_ODAKOM.hwpx",
+                                               "original_file_name":  "중진공_베트남_평가 용역 계획서_ODAKOM.hwpx",
+                                               "file_url":  "https://zzrqzdvrndmqbuksdzgq.supabase.co/storage/v1/object/public/project-deliverables/tasks/9e6e190b-fbac-437e-b551-ab17351c637b/odakom_1777402371173_0f1dba19.hwpx",
+                                               "file_path":  "tasks/9e6e190b-fbac-437e-b551-ab17351c637b/odakom_1777402371173_0f1dba19.hwpx",
+                                               "version":  "v0.1",
+                                               "status":  "작성중",
+                                               "uploaded_at":  "2026-04-28T18:52:54.733+00:00",
+                                               "is_visible_to_client":  true
+                                           },
+                                           {
+                                               "id":  "91d653ad-6701-451c-8f13-a689d4b89e5e",
+                                               "task_id":  "9e6e190b-fbac-437e-b551-ab17351c637b",
+                                               "title":  "중진공_베트남_평가 용역 계획서_ODAKOM.hwpx",
+                                               "original_file_name":  "중진공_베트남_평가 용역 계획서_ODAKOM.hwpx",
+                                               "file_url":  "https://zzrqzdvrndmqbuksdzgq.supabase.co/storage/v1/object/public/project-deliverables/tasks/9e6e190b-fbac-437e-b551-ab17351c637b/odakom_1777402371173_0f1dba19.hwpx",
+                                               "file_path":  "tasks/9e6e190b-fbac-437e-b551-ab17351c637b/odakom_1777402371173_0f1dba19.hwpx",
+                                               "version":  "v0.1",
+                                               "status":  "작성중",
+                                               "uploaded_at":  "2026-04-28T18:52:54.733+00:00",
+                                               "is_visible_to_client":  true
+                                           },
+                                           {
+                                               "id":  "9baa854e-e952-4cbb-81d8-8eb444e13045",
+                                               "task_id":  "9e6e190b-fbac-437e-b551-ab17351c637b",
+                                               "title":  "중진공_베트남_평가 용역 계획서_ODAKOM.hwpx",
+                                               "original_file_name":  "중진공_베트남_평가 용역 계획서_ODAKOM.hwpx",
+                                               "file_url":  "https://zzrqzdvrndmqbuksdzgq.supabase.co/storage/v1/object/public/project-deliverables/tasks/9e6e190b-fbac-437e-b551-ab17351c637b/odakom_1777402371173_0f1dba19.hwpx",
+                                               "file_path":  "tasks/9e6e190b-fbac-437e-b551-ab17351c637b/odakom_1777402371173_0f1dba19.hwpx",
+                                               "version":  "v0.1",
+                                               "status":  "작성중",
+                                               "uploaded_at":  "2026-04-28T18:52:54.733+00:00",
+                                               "is_visible_to_client":  true
+                                           },
+                                           {
+                                               "id":  "bdce3ef5-1d48-4422-a2be-e13e7e572539",
+                                               "task_id":  "9e6e190b-fbac-437e-b551-ab17351c637b",
+                                               "title":  "중진공_베트남_평가 용역 계획서_ODAKOM.hwpx",
+                                               "original_file_name":  "중진공_베트남_평가 용역 계획서_ODAKOM.hwpx",
+                                               "file_url":  "https://zzrqzdvrndmqbuksdzgq.supabase.co/storage/v1/object/public/project-deliverables/tasks/9e6e190b-fbac-437e-b551-ab17351c637b/odakom_1777402371173_0f1dba19.hwpx",
+                                               "file_path":  "tasks/9e6e190b-fbac-437e-b551-ab17351c637b/odakom_1777402371173_0f1dba19.hwpx",
+                                               "version":  "v0.1",
+                                               "status":  "작성중",
+                                               "uploaded_at":  "2026-04-28T18:52:54.733+00:00",
+                                               "is_visible_to_client":  true
+                                           },
+                                           {
+                                               "id":  "ce557728-223c-4e29-9daa-4dae8c366a47",
+                                               "task_id":  "9e6e190b-fbac-437e-b551-ab17351c637b",
+                                               "title":  "중진공_베트남_평가 용역 계획서_ODAKOM.hwpx",
+                                               "original_file_name":  "중진공_베트남_평가 용역 계획서_ODAKOM.hwpx",
+                                               "file_url":  "https://zzrqzdvrndmqbuksdzgq.supabase.co/storage/v1/object/public/project-deliverables/tasks/9e6e190b-fbac-437e-b551-ab17351c637b/odakom_1777402371173_0f1dba19.hwpx",
+                                               "file_path":  "tasks/9e6e190b-fbac-437e-b551-ab17351c637b/odakom_1777402371173_0f1dba19.hwpx",
+                                               "version":  "v0.1",
+                                               "status":  "작성중",
+                                               "uploaded_at":  "2026-04-28T18:52:54.733+00:00",
+                                               "is_visible_to_client":  true
+                                           },
+                                           {
+                                               "id":  "96315ce8-5bce-4ceb-bd60-04c19d2f8f98",
+                                               "task_id":  "173fc359-cd0a-43dc-9abe-9f14469ac79e",
+                                               "title":  "4-1. 견적서.pdf",
+                                               "original_file_name":  "4-1. 견적서.pdf",
+                                               "file_url":  "https://zzrqzdvrndmqbuksdzgq.supabase.co/storage/v1/object/public/project-deliverables/tasks/173fc359-cd0a-43dc-9abe-9f14469ac79e/4-1_1777404304078_188ebf68.pdf",
+                                               "file_path":  "tasks/173fc359-cd0a-43dc-9abe-9f14469ac79e/4-1_1777404304078_188ebf68.pdf",
+                                               "version":  "v0.1",
+                                               "status":  "작성중",
+                                               "uploaded_at":  "2026-04-28T19:25:05.381+00:00",
+                                               "is_visible_to_client":  true
+                                           }
+                                       ],
+                             "Count":  6
+                         },
+    "storageObjects":  [
+                           {
+                               "path":  "tasks/173fc359-cd0a-43dc-9abe-9f14469ac79e/4-1_1777404304078_188ebf68.pdf",
+                               "name":  "4-1_1777404304078_188ebf68.pdf",
+                               "created_at":  "2026-04-28T19:25:06.108Z",
+                               "updated_at":  "2026-04-28T19:25:06.108Z",
+                               "size":  422299
+                           },
+                           {
+                               "path":  "tasks/9e6e190b-fbac-437e-b551-ab17351c637b/odakom_1777400123721_abab5d8b.hwpx",
+                               "name":  "odakom_1777400123721_abab5d8b.hwpx",
+                               "created_at":  "2026-04-28T18:15:26.650Z",
+                               "updated_at":  "2026-04-28T18:15:26.650Z",
+                               "size":  7574882
+                           },
+                           {
+                               "path":  "tasks/9e6e190b-fbac-437e-b551-ab17351c637b/odakom_1777402371173_0f1dba19.hwpx",
+                               "name":  "odakom_1777402371173_0f1dba19.hwpx",
+                               "created_at":  "2026-04-28T18:52:55.444Z",
+                               "updated_at":  "2026-04-28T18:52:55.444Z",
+                               "size":  7574882
+                           },
+                           {
+                               "path":  "tasks/task-01/odakom_1777366558962.hwpx",
+                               "name":  "odakom_1777366558962.hwpx",
+                               "created_at":  "2026-04-28T08:56:02.335Z",
+                               "updated_at":  "2026-04-28T08:56:02.335Z",
+                               "size":  7574882
+                           },
+                           {
+                               "path":  "tasks/task-01/odakom_1777366585756.pdf",
+                               "name":  "odakom_1777366585756.pdf",
+                               "created_at":  "2026-04-28T08:56:26.644Z",
+                               "updated_at":  "2026-04-28T08:56:26.644Z",
+                               "size":  422299
+                           },
+                           {
+                               "path":  "tasks/task-01/odakom_1777366910331_b474335d.hwpx",
+                               "name":  "odakom_1777366910331_b474335d.hwpx",
+                               "created_at":  "2026-04-28T09:01:52.711Z",
+                               "updated_at":  "2026-04-28T09:01:52.711Z",
+                               "size":  7574882
+                           },
+                           {
+                               "path":  "tasks/task-01/odakom_1777382087256_d31904ef.hwpx",
+                               "name":  "odakom_1777382087256_d31904ef.hwpx",
+                               "created_at":  "2026-04-28T13:14:49.952Z",
+                               "updated_at":  "2026-04-28T13:14:49.952Z",
+                               "size":  7574882
+                           },
+                           {
+                               "path":  "tasks/task-01/pcp-1_1777366922586_9fe2a1fe.pdf",
+                               "name":  "pcp-1_1777366922586_9fe2a1fe.pdf",
+                               "created_at":  "2026-04-28T09:02:03.708Z",
+                               "updated_at":  "2026-04-28T09:02:03.708Z",
+                               "size":  1143245
+                           }
+                       ]
+}
