@@ -66,6 +66,28 @@ function writeLocalComments(comments: ClientComment[]) {
   localStorage.setItem(COMMENT_STORAGE_KEY, JSON.stringify(comments));
 }
 
+function commentUpdatesToDb(updates: Partial<ClientComment>) {
+  const payload: Record<string, unknown> = {
+    target_type: updates.targetType,
+    target_id: updates.targetId,
+    target_title: updates.targetTitle,
+    author_name: updates.authorName,
+    author_role: updates.authorRole,
+    content: updates.content,
+    status: updates.status,
+    response: updates.response,
+    responded_by: updates.respondedBy,
+    responded_at: updates.respondedAt || null,
+    reflected_location: updates.reflectedLocation,
+    hold_reason: updates.holdReason,
+    updated_at: updates.updatedAt ?? new Date().toISOString()
+  };
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined) delete payload[key];
+  });
+  return payload;
+}
+
 export function getInitialLocalComments(): ClientComment[] {
   const existing = readLocalComments();
   if (existing) return existing;
@@ -135,32 +157,31 @@ export async function addComment(comment: ClientComment) {
 
 export async function updateComment(commentId: string, updates: Partial<ClientComment>) {
   const now = new Date().toISOString();
+  if (isSupabaseConfigured) {
+    if (!UUID_PATTERN.test(commentId)) return getComments();
+    const { error } = await requireSupabase().from("comments").update(commentUpdatesToDb({ ...updates, updatedAt: now })).eq("id", commentId);
+    if (error) {
+      logDataError("comments.update", error);
+      throw error;
+    }
+    return getComments();
+  }
   const comments = getInitialLocalComments().map((comment) => comment.id === commentId ? normalizeComment({ ...comment, ...updates, updatedAt: now }) : comment);
   writeLocalComments(comments);
-  if (isSupabaseConfigured) {
-    if (!UUID_PATTERN.test(commentId)) return comments;
-    const target = comments.find((comment) => comment.id === commentId);
-    if (target) {
-      const { error } = await requireSupabase().from("comments").update(commentToDb(target, { includeId: false })).eq("id", commentId);
-      if (error) {
-        logDataError("comments.update", error);
-        throw error;
-      }
-    }
-  }
   return comments;
 }
 
 export async function deleteComment(commentId: string) {
-  const comments = getInitialLocalComments().filter((comment) => comment.id !== commentId);
-  writeLocalComments(comments);
   if (isSupabaseConfigured && UUID_PATTERN.test(commentId)) {
     const { error } = await requireSupabase().from("comments").delete().eq("id", commentId);
     if (error) {
       logDataError("comments.delete", error);
       throw error;
     }
+    return getComments();
   }
+  const comments = getInitialLocalComments().filter((comment) => comment.id !== commentId);
+  writeLocalComments(comments);
   return comments;
 }
 

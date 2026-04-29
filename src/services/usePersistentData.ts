@@ -28,66 +28,68 @@ export function usePersistentData() {
     comments: getInitialLocalComments()
   }));
 
+  const refreshFromSupabase = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setSupabaseError("Supabase ?섍꼍蹂?섍? ?ㅼ젙?섏? ?딆븯?듬땲??");
+      return;
+    }
+
+    let nextError = "";
+    setSupabaseError("");
+
+    try {
+      const tasks = await getTasks();
+      setData((current) => ({
+        ...current,
+        tasks: tasks ?? current.tasks
+      }));
+    } catch (error) {
+      debugError("Supabase tasks load failed. Keeping current tasks.", error);
+      logDataError("tasks.load", error);
+      nextError = "?곗씠??濡쒕뱶 ?ㅽ뙣: Supabase tasks瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??";
+    }
+
+    try {
+      const taskDeliverables = await getTaskDeliverables();
+      setData((current) => ({
+        ...current,
+        taskDeliverables: taskDeliverables ?? current.taskDeliverables
+      }));
+    } catch (error) {
+      debugError("Supabase task deliverables load failed. Keeping current deliverables.", error);
+      logDataError("deliverables.load", error);
+      nextError ||= "?곗씠??濡쒕뱶 ?ㅽ뙣: Supabase task_deliverables瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??";
+    }
+
+    try {
+      const comments = await getComments();
+      setData((current) => ({ ...current, comments: comments ?? current.comments }));
+    } catch (error) {
+      debugError("Supabase comments load failed. Keeping current comments.", error);
+      logDataError("comments.load", error);
+      nextError ||= "?곗씠??濡쒕뱶 ?ㅽ뙣: Supabase comments瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??";
+    }
+
+    try {
+      const approvals = await loadApprovalsFromSupabase();
+      setData((current) => ({ ...current, approvals: approvals ?? current.approvals }));
+    } catch (error) {
+      debugError("Supabase approvals load failed. Keeping current approvals.", error);
+      logDataError("approvals.load", error);
+      nextError ||= "?곗씠??濡쒕뱶 ?ㅽ뙣: Supabase approvals瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??";
+    }
+
+    if (nextError) setSupabaseError(nextError);
+  }, []);
+
   useEffect(() => {
     if (isSupabaseConfigured && data.tasks.length === 0) return;
     repository.save(data);
   }, [data, repository]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setSupabaseError("Supabase ?섍꼍蹂?섍? ?ㅼ젙?섏? ?딆븯?듬땲??");
-      return;
-    }
-    let cancelled = false;
-    async function hydrateFromSupabase() {
-      try {
-        setSupabaseError("");
-        const tasks = await getTasks();
-        if (cancelled) return;
-        setData((current) => ({
-          ...current,
-          tasks: tasks ?? current.tasks
-        }));
-      } catch (error) {
-        debugError("Supabase tasks load failed. Keeping current tasks.", error);
-        logDataError("tasks.load", error);
-        setSupabaseError("?곗씠??濡쒕뱶 ?ㅽ뙣: Supabase tasks瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??");
-      }
-
-      try {
-        const taskDeliverables = await getTaskDeliverables();
-        if (!cancelled) {
-          setData((current) => ({
-            ...current,
-            taskDeliverables: taskDeliverables ?? current.taskDeliverables
-          }));
-        }
-      } catch (error) {
-        debugError("Supabase task deliverables load failed. Keeping current deliverables.", error);
-        logDataError("deliverables.load", error);
-      }
-
-      try {
-        const comments = await getComments();
-        if (!cancelled) setData((current) => ({ ...current, comments: comments ?? current.comments }));
-      } catch (error) {
-        debugError("Supabase comments load failed. Keeping current comments.", error);
-        logDataError("comments.load", error);
-      }
-
-      try {
-        const approvals = await loadApprovalsFromSupabase();
-        if (!cancelled) setData((current) => ({ ...current, approvals: approvals ?? current.approvals }));
-      } catch (error) {
-        debugError("Supabase approvals load failed. Keeping current approvals.", error);
-        logDataError("approvals.load", error);
-      }
-    }
-    hydrateFromSupabase();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    refreshFromSupabase();
+  }, [refreshFromSupabase]);
 
   useEffect(() => {
     const handleStorage = () => {
@@ -121,6 +123,6 @@ export function usePersistentData() {
     window.alert("?곗씠???덉젙?깆쓣 ?꾪빐 ?붾㈃ 珥덇린??湲곕뒫? 鍮꾪솢?깊솕?덉뒿?덈떎. Supabase ?곗씠?곕뒗 蹂寃쎈릺吏 ?딆뒿?덈떎.");
   };
 
-  return { data, setData: saveData, reset, supabaseError };
+  return { data, setData: saveData, reset, supabaseError, refreshFromSupabase };
 }
 

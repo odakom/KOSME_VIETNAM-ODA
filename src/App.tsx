@@ -541,7 +541,7 @@ function SettingsPage({ data }: { data: AppData }) {
   );
 }
 
-function ClientAccessGate({ onSuccess }: { onSuccess: () => void }) {
+function ClientAccessGate({ onSuccess }: { onSuccess: () => void | Promise<void> }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const passwordConfigured = hasClientPasswordConfigured();
@@ -597,25 +597,36 @@ function AdminLoginPage() {
   );
 }
 
-function ClientPortal({ data, setData }: { data: AppData; setData: (data: AppData) => void }) {
+function ClientPortal({ data, setData, refreshData }: { data: AppData; setData: (data: AppData) => void; refreshData: () => Promise<void> }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [allowed, setAllowed] = useState(hasClientAccess());
+  const [refreshing, setRefreshing] = useState(false);
   const view = clientViewFromPath(location.pathname);
-  if (!allowed) return <ClientAccessGate onSuccess={() => setAllowed(true)} />;
+  const handleClientAccess = async () => {
+    setAllowed(true);
+    setRefreshing(true);
+    try {
+      await refreshData();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  if (!allowed) return <ClientAccessGate onSuccess={handleClientAccess} />;
   return (
     <ClientLayout page={view} menu={clientPortalMenu} onPageChange={(page) => navigate(`/client/${page}`)} onLogout={() => { clearClientAccess(); setAllowed(false); }}>
+      {refreshing ? <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">Supabase 데이터를 다시 불러오는 중입니다.</div> : null}
       <ClientDashboard data={data} setData={setData} view={view} />
     </ClientLayout>
   );
 }
 
 export default function App() {
-  const { data, setData, reset, supabaseError } = usePersistentData();
+  const { data, setData, reset, supabaseError, refreshFromSupabase } = usePersistentData();
   const navigate = useNavigate();
   const location = useLocation();
   const [role, setRole] = useState<Role>("admin");
-  if (location.pathname.startsWith("/client")) return <ClientPortal data={data} setData={setData} />;
+  if (location.pathname.startsWith("/client")) return <ClientPortal data={data} setData={setData} refreshData={refreshFromSupabase} />;
   if (isClientOnlyDeploy()) return <Navigate to="/client/dashboard" replace />;
   if (location.pathname === "/login") return <AdminLoginPage />;
   if (!hasAdminAccess()) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
