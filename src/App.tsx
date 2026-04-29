@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, Trash2, Upload } from "lucide-react";
-import { ClientLayout } from "./components/ClientLayout";
 import { GanttChart } from "./components/dashboard/GanttChart";
 import { EditableTable, type Field } from "./components/EditableTable";
 import { Layout, type MenuItem } from "./components/Layout";
@@ -83,6 +82,10 @@ function Page({ title, description, children }: { title: string; description?: s
       {children}
     </div>
   );
+}
+
+function ClientPreviewSurface({ data, setData, view = "dashboard" }: { data: AppData; setData: (data: AppData) => void; view?: "dashboard" | "schedule" | "deliverables" | "comments" }) {
+  return <ClientDashboard data={data} setData={setData} view={view} readOnlyActions />;
 }
 
 function syncDeliverablePlannedDates(prevTasks: Task[], nextTasks: Task[], deliverables: TaskDeliverable[]) {
@@ -173,7 +176,7 @@ function AdminPage({ page, data, setData }: { page: string; data: AppData; setDa
 
   if (page === "dashboard") return <Dashboard data={data} />;
   if (page === "contract") return <ContractPage data={data} setData={setData} />;
-  if (page === "client") return <ClientDashboard data={data} setData={setData} />;
+  if (page === "client") return <ClientPreviewSurface data={data} setData={setData} />;
   if (page === "tasks") {
     return (
       <Page title="과업 체크리스트" description="과업 체크리스트의 변경사항은 즉시 Supabase에 저장됩니다.">
@@ -620,12 +623,14 @@ function ClientPortal({ data, setData, refreshData, isLoading, error }: { data: 
   };
   if (!allowed) return <ClientAccessGate onSuccess={handleClientAccess} />;
   return (
-    <ClientLayout page={view} menu={clientPortalMenu} onPageChange={(page) => navigate(`/client/${page}`)} onLogout={() => { clearClientAccess(); setAllowed(false); }}>
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
       {isLoading && !refreshing ? <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">Supabase 데이터를 불러오는 중입니다.</div> : null}
       {refreshing ? <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">Supabase 데이터를 다시 불러오는 중입니다.</div> : null}
       {error ? <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div> : null}
-      <ClientDashboard data={data} setData={setData} view={view} />
-    </ClientLayout>
+        <ClientPreviewSurface data={data} setData={setData} view={view} />
+      </div>
+    </div>
   );
 }
 

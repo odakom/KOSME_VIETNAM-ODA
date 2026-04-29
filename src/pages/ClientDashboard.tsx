@@ -14,7 +14,7 @@ import { getUpcomingTasks } from "../utils/schedule";
 
 type ClientView = "dashboard" | "schedule" | "deliverables" | "comments";
 
-export function ClientDashboard({ data, setData, view = "dashboard" }: { data: AppData; setData: (data: AppData) => void; view?: ClientView }) {
+export function ClientDashboard({ data, setData, view = "dashboard", readOnlyActions = false }: { data: AppData; setData: (data: AppData) => void; view?: ClientView; readOnlyActions?: boolean }) {
   const commentsApi = useComments(data, setData);
   const visibleTasks = useMemo(() => getClientVisibleTasks(data.tasks), [data.tasks]);
   const publicDeliverables = useMemo(() => getClientVisibleDeliverables(data.taskDeliverables), [data.taskDeliverables]);
@@ -114,7 +114,7 @@ export function ClientDashboard({ data, setData, view = "dashboard" }: { data: A
     </section>
   );
 
-  const commentsSection = <ClientCommentForm data={data} commentsApi={commentsApi} visibleTasks={visibleTasks} publicDeliverables={publicDeliverables} clientComments={clientComments} />;
+  const commentsSection = <ClientCommentForm data={data} commentsApi={commentsApi} visibleTasks={visibleTasks} publicDeliverables={publicDeliverables} clientComments={clientComments} readOnlyActions={readOnlyActions} />;
 
   if (view === "schedule") return <div className="space-y-6">{projectOverview}{progressSection}{scheduleSection}<GanttChart tasks={visibleTasks} title="발주처 일정 간트차트" readOnly visibleOnly /></div>;
   if (view === "deliverables") return <div className="space-y-6">{deliverablesSection}</div>;
@@ -136,12 +136,13 @@ export function ClientDashboard({ data, setData, view = "dashboard" }: { data: A
   );
 }
 
-function ClientCommentForm({ data, commentsApi, visibleTasks, publicDeliverables, clientComments }: {
+function ClientCommentForm({ data, commentsApi, visibleTasks, publicDeliverables, clientComments, readOnlyActions }: {
   data: AppData;
   commentsApi: ReturnType<typeof useComments>;
   visibleTasks: Task[];
   publicDeliverables: TaskDeliverable[];
   clientComments: ClientComment[];
+  readOnlyActions: boolean;
 }) {
   const [searchParams] = useSearchParams();
   const [author, setAuthor] = useState("발주처");
@@ -284,7 +285,7 @@ function ClientCommentForm({ data, commentsApi, visibleTasks, publicDeliverables
                   {comment.targetType === "task" ? <Link to="/client/schedule" className="text-xs font-semibold text-public hover:underline">관련 과업 보기</Link> : null}
                   {comment.targetType === "deliverable" ? <Link to="/client/deliverables" className="text-xs font-semibold text-public hover:underline">관련 산출물 보기</Link> : null}
                 </div>
-                {editingCommentId !== comment.id ? (
+                {!readOnlyActions && editingCommentId !== comment.id ? (
                   <div className="flex flex-wrap gap-2">
                     <button className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-public hover:text-public" onClick={() => startEdit(comment)}>
                       <Pencil size={14} /> 수정
