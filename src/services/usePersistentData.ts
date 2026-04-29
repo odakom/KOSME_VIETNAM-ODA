@@ -20,12 +20,13 @@ function debugError(message: string, error: unknown) {
 
 export function usePersistentData() {
   const repository = useMemo(() => localStorageRepository, []);
+  const allowLocalFallback = !isSupabaseConfigured && import.meta.env.DEV;
   const [supabaseError, setSupabaseError] = useState(isSupabaseConfigured ? "" : "Supabase ?섍꼍蹂?섍? ?ㅼ젙?섏? ?딆븯?듬땲??");
   const [data, setData] = useState<AppData>(() => ({
     ...repository.load(),
-    tasks: isSupabaseConfigured ? [] : getInitialLocalTasks(),
-    taskDeliverables: isSupabaseConfigured ? [] : getInitialLocalTaskDeliverables(),
-    comments: isSupabaseConfigured ? [] : getInitialLocalComments()
+    tasks: allowLocalFallback ? getInitialLocalTasks() : [],
+    taskDeliverables: allowLocalFallback ? getInitialLocalTaskDeliverables() : [],
+    comments: allowLocalFallback ? getInitialLocalComments() : []
   }));
   const [isSupabaseLoading, setIsSupabaseLoading] = useState(isSupabaseConfigured);
 

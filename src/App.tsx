@@ -598,7 +598,7 @@ function AdminLoginPage() {
   );
 }
 
-function ClientPortal({ data, setData, refreshData, isLoading }: { data: AppData; setData: (data: AppData) => void; refreshData: () => Promise<void>; isLoading: boolean }) {
+function ClientPortal({ data, setData, refreshData, isLoading, error }: { data: AppData; setData: (data: AppData) => void; refreshData: () => Promise<void>; isLoading: boolean; error: string }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [allowed, setAllowed] = useState(hasClientAccess());
@@ -623,6 +623,7 @@ function ClientPortal({ data, setData, refreshData, isLoading }: { data: AppData
     <ClientLayout page={view} menu={clientPortalMenu} onPageChange={(page) => navigate(`/client/${page}`)} onLogout={() => { clearClientAccess(); setAllowed(false); }}>
       {isLoading && !refreshing ? <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">Supabase 데이터를 불러오는 중입니다.</div> : null}
       {refreshing ? <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">Supabase 데이터를 다시 불러오는 중입니다.</div> : null}
+      {error ? <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div> : null}
       <ClientDashboard data={data} setData={setData} view={view} />
     </ClientLayout>
   );
@@ -633,7 +634,7 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const [role, setRole] = useState<Role>("admin");
-  if (location.pathname === "/client" || location.pathname.startsWith("/client/")) return <ClientPortal data={data} setData={setData} refreshData={refreshFromSupabase} isLoading={isSupabaseLoading} />;
+  if (location.pathname === "/client" || location.pathname.startsWith("/client/")) return <ClientPortal data={data} setData={setData} refreshData={refreshFromSupabase} isLoading={isSupabaseLoading} error={supabaseError} />;
   if (isClientOnlyDeploy()) return <Navigate to="/client/dashboard" replace />;
   if (location.pathname === "/login") return <AdminLoginPage />;
   if (!hasAdminAccess()) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
