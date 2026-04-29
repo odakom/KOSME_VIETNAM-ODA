@@ -5,7 +5,6 @@ import { GanttChart } from "./components/dashboard/GanttChart";
 import { EditableTable, type Field } from "./components/EditableTable";
 import { Layout, type MenuItem } from "./components/Layout";
 import { GroupedTaskList } from "./components/tasks/GroupedTaskList";
-import { ClientDashboard } from "./pages/ClientDashboard";
 import { ContractPage } from "./pages/ContractPage";
 import { Dashboard } from "./pages/Dashboard";
 import { isSupabaseConfigured } from "./lib/supabaseClient";
@@ -79,10 +78,6 @@ function Page({ title, description, children }: { title: string; description?: s
   );
 }
 
-function ClientPreviewSurface({ data, setData, view = "dashboard" }: { data: AppData; setData: (data: AppData) => void; view?: "dashboard" | "schedule" | "deliverables" | "comments" }) {
-  return <ClientDashboard data={data} setData={setData} view={view} readOnlyActions />;
-}
-
 function syncDeliverablePlannedDates(prevTasks: Task[], nextTasks: Task[], deliverables: TaskDeliverable[]) {
   const prevById = new Map(prevTasks.map((task) => [task.id, task]));
   const nextById = new Map(nextTasks.map((task) => [task.id, task]));
@@ -95,7 +90,7 @@ function syncDeliverablePlannedDates(prevTasks: Task[], nextTasks: Task[], deliv
   });
 }
 
-function AdminPage({ page, data, setData }: { page: string; data: AppData; setData: (data: AppData) => void }) {
+function AdminPage({ page, data, setData, readOnly = false }: { page: string; data: AppData; setData: (data: AppData) => void; readOnly?: boolean }) {
   const [searchParams] = useSearchParams();
   const statusFilter = searchParams.get("status");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -171,7 +166,7 @@ function AdminPage({ page, data, setData }: { page: string; data: AppData; setDa
 
   if (page === "dashboard") return <Dashboard data={data} />;
   if (page === "contract") return <ContractPage data={data} setData={setData} />;
-  if (page === "client") return <ClientPreviewSurface data={data} setData={setData} />;
+  if (page === "client") return <Dashboard data={data} />;
   if (page === "tasks") {
     return (
       <Page title="과업 체크리스트" description="과업 체크리스트의 변경사항은 즉시 Supabase에 저장됩니다.">
@@ -186,11 +181,13 @@ function AdminPage({ page, data, setData }: { page: string; data: AppData; setDa
           tasks={visibleTasks}
           fields={taskFields}
           onChange={(tasks) => {
+            if (readOnly) return;
             const nextTasks = statusFilter ? mergeRows(data.tasks, tasks.map(normalizeTaskGroup)) : tasks.map(normalizeTaskGroup);
             persistTaskRows(nextTasks, syncDeliverablePlannedDates(data.tasks, nextTasks, data.taskDeliverables));
           }}
           createRow={(group): Task => normalizeTaskGroup({ id: nextId("task"), group, groupOrder: getGroupOrder(group), category: group, title: "", owner: "", startDate: todayIso(), dueDate: todayIso(), status: "미착수", deliverable: "", evidence: "", note: "", isVisibleToClient: true })}
-          rowActions={(task) => {
+          readOnly={readOnly}
+          rowActions={readOnly ? undefined : (task) => {
             const count = deliverablesApi.getByTaskId(task.id).length;
             return <button className="rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-ink hover:border-odakom hover:bg-slate-50" onClick={() => setSelectedTaskId(task.id)}>산출물 {count}개</button>;
           }}
@@ -211,14 +208,14 @@ function AdminPage({ page, data, setData }: { page: string; data: AppData; setDa
       </Page>
     );
   }
-  if (page === "schedule") return <SchedulePage data={data} onChange={(tasks) => persistTaskRows(tasks.map(normalizeTaskGroup), syncDeliverablePlannedDates(data.tasks, tasks, data.taskDeliverables))} />;
-  if (page === "deliverables") return <DeliverablesPage data={data} setData={setData} statusFilter={statusFilter} />;
-  if (page === "comments") return <CommentsPage data={data} setData={setData} />;
-  if (page === "risks") return <RisksPage data={data} setData={setData} />;
-  return <SettingsPage data={data} />;
+  if (page === "schedule") return <SchedulePage data={data} readOnly={readOnly} onChange={(tasks) => { if (!readOnly) persistTaskRows(tasks.map(normalizeTaskGroup), syncDeliverablePlannedDates(data.tasks, tasks, data.taskDeliverables)); }} />;
+  if (page === "deliverables") return <DeliverablesPage data={data} setData={setData} statusFilter={statusFilter} readOnly={readOnly} />;
+  if (page === "comments") return <CommentsPage data={data} setData={setData} readOnly={readOnly} />;
+  if (page === "risks") return <RisksPage data={data} setData={setData} readOnly={readOnly} />;
+  return <SettingsPage data={data} readOnly={readOnly} />;
 }
 
-function SchedulePage({ data, onChange }: { data: AppData; onChange: (tasks: Task[]) => void }) {
+function SchedulePage({ data, onChange, readOnly = false }: { data: AppData; onChange: (tasks: Task[]) => void; readOnly?: boolean }) {
   const grouped = useMemo(() => groupTasks(data.tasks), [data.tasks]);
   const updateTask = (taskId: string, updates: Partial<Task>) => onChange(data.tasks.map((task) => task.id === taskId ? normalizeTaskGroup({ ...task, ...updates }) : task));
   const inputClass = "w-full rounded-md border border-slate-200 bg-white px-2 py-2 text-sm text-slate-800 outline-none focus:border-odakom";
@@ -247,11 +244,11 @@ function SchedulePage({ data, onChange }: { data: AppData; onChange: (tasks: Tas
                       const deliverableCount = data.taskDeliverables.filter((item) => item.taskId === task.id).length;
                       return (
                         <tr key={task.id}>
-                          <td className="min-w-72 px-3 py-3"><input className={inputClass} value={task.title} onChange={(event) => updateTask(task.id, { title: event.target.value })} /></td>
-                          <td className="min-w-36 px-3 py-3"><input className={inputClass} value={task.owner} onChange={(event) => updateTask(task.id, { owner: event.target.value })} /></td>
-                          <td className="min-w-36 px-3 py-3"><input className={inputClass} type="date" value={task.startDate} onChange={(event) => updateTask(task.id, { startDate: event.target.value })} /></td>
-                          <td className="min-w-36 px-3 py-3"><input className={inputClass} type="date" value={task.dueDate} onChange={(event) => updateTask(task.id, { dueDate: event.target.value })} /></td>
-                          <td className="min-w-40 px-3 py-3"><select className={inputClass} value={task.status} onChange={(event) => updateTask(task.id, { status: event.target.value as Task["status"] })}>{taskStatusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select></td>
+                          <td className="min-w-72 px-3 py-3"><input className={inputClass} value={task.title} readOnly={readOnly} onChange={(event) => updateTask(task.id, { title: event.target.value })} /></td>
+                          <td className="min-w-36 px-3 py-3"><input className={inputClass} value={task.owner} readOnly={readOnly} onChange={(event) => updateTask(task.id, { owner: event.target.value })} /></td>
+                          <td className="min-w-36 px-3 py-3"><input className={inputClass} type="date" value={task.startDate} readOnly={readOnly} onChange={(event) => updateTask(task.id, { startDate: event.target.value })} /></td>
+                          <td className="min-w-36 px-3 py-3"><input className={inputClass} type="date" value={task.dueDate} readOnly={readOnly} onChange={(event) => updateTask(task.id, { dueDate: event.target.value })} /></td>
+                          <td className="min-w-40 px-3 py-3"><select className={inputClass} value={task.status} disabled={readOnly} onChange={(event) => updateTask(task.id, { status: event.target.value as Task["status"] })}>{taskStatusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select></td>
                           <td className="px-3 py-3 font-semibold">{dday === null ? "-" : dday < 0 ? `D+${Math.abs(dday)}` : dday === 0 ? "D-day" : `D-${dday}`}</td>
                           <td className="px-3 py-3 text-slate-600">산출물 {deliverableCount}개</td>
                         </tr>
@@ -370,13 +367,16 @@ function TaskDeliverablesModal({ task, deliverables, onClose, onSave, onTaskStat
   );
 }
 
-function DeliverablesPage({ data, setData, statusFilter }: { data: AppData; setData: (data: AppData) => void; statusFilter: string | null }) {
+function DeliverablesPage({ data, setData, statusFilter, readOnly = false }: { data: AppData; setData: (data: AppData) => void; statusFilter: string | null; readOnly?: boolean }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState(statusFilter === "client-review" ? "발주처검토" : "전체");
   const [visibility, setVisibility] = useState("전체");
   const deliverablesApi = useDeliverables(data, setData);
   const taskById = useMemo(() => new Map(data.tasks.map((task) => [task.id, task])), [data.tasks]);
-  const updateDeliverable = (id: string, updates: Partial<TaskDeliverable>) => deliverablesApi.update(id, updates).catch(() => window.alert("산출물 저장에 실패했습니다."));
+  const updateDeliverable = (id: string, updates: Partial<TaskDeliverable>) => {
+    if (readOnly) return;
+    deliverablesApi.update(id, updates).catch(() => window.alert("산출물 저장에 실패했습니다."));
+  };
   const deleteDeliverable = async (item: TaskDeliverable) => {
     if (!window.confirm("선택한 산출물과 연결된 Storage 파일을 삭제합니다. 계속하시겠습니까?")) return;
     try {
@@ -421,15 +421,15 @@ function DeliverablesPage({ data, setData, statusFilter }: { data: AppData; setD
                 const task = taskById.get(item.taskId);
                 return (
                   <tr key={item.id}>
-                    <td className="min-w-56 px-3 py-3"><input className="w-full rounded-md border border-slate-200 px-2 py-2" value={item.title} onChange={(event) => updateDeliverable(item.id, { title: event.target.value })} /></td>
+                    <td className="min-w-56 px-3 py-3"><input className="w-full rounded-md border border-slate-200 px-2 py-2" value={item.title} readOnly={readOnly} onChange={(event) => updateDeliverable(item.id, { title: event.target.value })} /></td>
                     <td className="min-w-64 px-3 py-3"><div className="font-semibold">{task?.title || "연결 과업 없음"}</div><div className="text-xs text-slate-500">{task?.category || "-"} · {task?.owner || item.uploadedBy || "담당자 미정"}</div></td>
                     <td className="min-w-56 px-3 py-3"><div className="font-medium">{item.originalFileName || item.fileName || "파일 없음"}</div><div className="text-xs text-slate-500">{formatFileSize(item.fileSize)} · {item.uploadedAt || "-"}</div></td>
-                    <td className="min-w-28 px-3 py-3"><input className="w-full rounded-md border border-slate-200 px-2 py-2" value={item.version} onChange={(event) => updateDeliverable(item.id, { version: event.target.value })} /></td>
-                    <td className="min-w-40 px-3 py-3"><select className="w-full rounded-md border border-slate-200 px-2 py-2" value={item.status} onChange={(event) => updateDeliverable(item.id, { status: event.target.value as TaskDeliverable["status"] })}>{deliverableStatusOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></td>
-                    <td className="px-3 py-3"><input className="h-5 w-5 accent-odakom" type="checkbox" checked={item.isVisibleToClient} onChange={(event) => updateDeliverable(item.id, { isVisibleToClient: event.target.checked })} /></td>
-                    <td className="min-w-48 px-3 py-3"><textarea className="min-h-16 w-full rounded-md border border-slate-200 px-2 py-2" value={item.note} onChange={(event) => updateDeliverable(item.id, { note: event.target.value })} /></td>
+                    <td className="min-w-28 px-3 py-3"><input className="w-full rounded-md border border-slate-200 px-2 py-2" value={item.version} readOnly={readOnly} onChange={(event) => updateDeliverable(item.id, { version: event.target.value })} /></td>
+                    <td className="min-w-40 px-3 py-3"><select className="w-full rounded-md border border-slate-200 px-2 py-2" value={item.status} disabled={readOnly} onChange={(event) => updateDeliverable(item.id, { status: event.target.value as TaskDeliverable["status"] })}>{deliverableStatusOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></td>
+                    <td className="px-3 py-3"><input className="h-5 w-5 accent-odakom" type="checkbox" checked={item.isVisibleToClient} disabled={readOnly} onChange={(event) => updateDeliverable(item.id, { isVisibleToClient: event.target.checked })} /></td>
+                    <td className="min-w-48 px-3 py-3"><textarea className="min-h-16 w-full rounded-md border border-slate-200 px-2 py-2" value={item.note} readOnly={readOnly} onChange={(event) => updateDeliverable(item.id, { note: event.target.value })} /></td>
                     <td className="px-3 py-3">{hasDownloadableFile(item) ? <button className="rounded-md border border-slate-200 px-3 py-2 font-semibold text-ink" onClick={() => downloadFile(item)}>다운로드</button> : <span className="text-xs text-slate-400">파일 원본 없음</span>}</td>
-                    <td className="px-3 py-3"><button className="rounded-md p-2 text-slate-500 hover:bg-red-50 hover:text-red-600" onClick={() => deleteDeliverable(item)}><Trash2 size={16} /></button></td>
+                    {!readOnly ? <td className="px-3 py-3"><button className="rounded-md p-2 text-slate-500 hover:bg-red-50 hover:text-red-600" onClick={() => deleteDeliverable(item)}><Trash2 size={16} /></button></td> : null}
                   </tr>
                 );
               })}
@@ -442,9 +442,12 @@ function DeliverablesPage({ data, setData, statusFilter }: { data: AppData; setD
   );
 }
 
-function CommentsPage({ data, setData }: { data: AppData; setData: (data: AppData) => void }) {
+function CommentsPage({ data, setData, readOnly = false }: { data: AppData; setData: (data: AppData) => void; readOnly?: boolean }) {
   const commentsApi = useComments(data, setData);
-  const update = (id: string, updates: Partial<ClientComment>) => commentsApi.update(id, updates).catch(() => window.alert("의견 저장에 실패했습니다."));
+  const update = (id: string, updates: Partial<ClientComment>) => {
+    if (readOnly) return;
+    commentsApi.update(id, updates).catch(() => window.alert("의견 저장에 실패했습니다."));
+  };
   const targetTypeLabel: Record<ClientComment["targetType"], string> = { project: "프로젝트", task: "과업", deliverable: "산출물" };
   return (
     <Page title="발주처 의견관리" description="comments 단일 원본 기준으로 발주처 의견과 답변을 관리합니다.">
@@ -456,16 +459,16 @@ function CommentsPage({ data, setData }: { data: AppData; setData: (data: AppDat
             <tbody className="divide-y divide-slate-100">
               {commentsApi.comments.map((comment) => (
                 <tr key={comment.id}>
-                  <td className="min-w-32 px-3 py-3"><input className="w-full rounded-md border border-slate-200 px-2 py-2" value={comment.authorName} onChange={(event) => update(comment.id, { authorName: event.target.value })} /></td>
+                  <td className="min-w-32 px-3 py-3"><input className="w-full rounded-md border border-slate-200 px-2 py-2" value={comment.authorName} readOnly={readOnly} onChange={(event) => update(comment.id, { authorName: event.target.value })} /></td>
                   <td className="min-w-28 px-3 py-3 text-slate-600">{comment.createdAt.slice(0, 10)}</td>
                   <td className="min-w-24 px-3 py-3">{targetTypeLabel[comment.targetType]}</td>
                   <td className="min-w-48 px-3 py-3 font-semibold">{comment.targetTitle}</td>
-                  <td className="min-w-64 px-3 py-3"><textarea className="min-h-20 w-full rounded-md border border-slate-200 px-2 py-2" value={comment.content} onChange={(event) => update(comment.id, { content: event.target.value })} /></td>
-                  <td className="min-w-32 px-3 py-3"><select className="w-full rounded-md border border-slate-200 px-2 py-2" value={comment.status} onChange={(event) => update(comment.id, { status: event.target.value as ClientComment["status"] })}>{commentStatusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select></td>
-                  <td className="min-w-64 px-3 py-3"><textarea className="min-h-20 w-full rounded-md border border-slate-200 px-2 py-2" value={comment.response} onChange={(event) => update(comment.id, { response: event.target.value, respondedBy: "내부관리자", respondedAt: new Date().toISOString() })} /></td>
-                  <td className="min-w-40 px-3 py-3"><input className="w-full rounded-md border border-slate-200 px-2 py-2" value={comment.reflectedLocation} onChange={(event) => update(comment.id, { reflectedLocation: event.target.value })} /></td>
-                  <td className="min-w-40 px-3 py-3"><input className="w-full rounded-md border border-slate-200 px-2 py-2" value={comment.holdReason} onChange={(event) => update(comment.id, { holdReason: event.target.value })} /></td>
-                  <td className="px-3 py-3"><button className="rounded-md p-2 text-slate-500 hover:bg-red-50 hover:text-red-600" onClick={() => window.confirm("의견을 삭제하시겠습니까?") && commentsApi.remove(comment.id)}><Trash2 size={16} /></button></td>
+                  <td className="min-w-64 px-3 py-3"><textarea className="min-h-20 w-full rounded-md border border-slate-200 px-2 py-2" value={comment.content} readOnly={readOnly} onChange={(event) => update(comment.id, { content: event.target.value })} /></td>
+                  <td className="min-w-32 px-3 py-3"><select className="w-full rounded-md border border-slate-200 px-2 py-2" value={comment.status} disabled={readOnly} onChange={(event) => update(comment.id, { status: event.target.value as ClientComment["status"] })}>{commentStatusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select></td>
+                  <td className="min-w-64 px-3 py-3"><textarea className="min-h-20 w-full rounded-md border border-slate-200 px-2 py-2" value={comment.response} readOnly={readOnly} onChange={(event) => update(comment.id, { response: event.target.value, respondedBy: "내부관리자", respondedAt: new Date().toISOString() })} /></td>
+                  <td className="min-w-40 px-3 py-3"><input className="w-full rounded-md border border-slate-200 px-2 py-2" value={comment.reflectedLocation} readOnly={readOnly} onChange={(event) => update(comment.id, { reflectedLocation: event.target.value })} /></td>
+                  <td className="min-w-40 px-3 py-3"><input className="w-full rounded-md border border-slate-200 px-2 py-2" value={comment.holdReason} readOnly={readOnly} onChange={(event) => update(comment.id, { holdReason: event.target.value })} /></td>
+                  {!readOnly ? <td className="px-3 py-3"><button className="rounded-md p-2 text-slate-500 hover:bg-red-50 hover:text-red-600" onClick={() => window.confirm("의견을 삭제하시겠습니까?") && commentsApi.remove(comment.id)}><Trash2 size={16} /></button></td> : null}
                 </tr>
               ))}
             </tbody>
@@ -477,7 +480,7 @@ function CommentsPage({ data, setData }: { data: AppData; setData: (data: AppDat
   );
 }
 
-function RisksPage({ data, setData }: { data: AppData; setData: (data: AppData) => void }) {
+function RisksPage({ data, setData, readOnly = false }: { data: AppData; setData: (data: AppData) => void; readOnly?: boolean }) {
   return (
     <Page title="리스크 관리">
       <EditableTable
@@ -490,14 +493,15 @@ function RisksPage({ data, setData }: { data: AppData; setData: (data: AppData) 
           { key: "owner", label: "담당자" },
           { key: "status", label: "상태" }
         ] as Field<Risk>[]}
-        onChange={(risks) => setData({ ...data, risks })}
+        onChange={(risks) => { if (!readOnly) setData({ ...data, risks }); }}
         createRow={(): Risk => ({ id: nextId("risk"), name: "", likelihood: "보통", impact: "보통", mitigation: "", owner: "", status: "모니터링" })}
+        readOnly={readOnly}
       />
     </Page>
   );
 }
 
-function SettingsPage({ data }: { data: AppData }) {
+function SettingsPage({ data, readOnly = false }: { data: AppData; readOnly?: boolean }) {
   const taskDebug = getTaskDebugInfo();
   const errorLogs = getDataErrorLogs();
   const taskBackups = getTaskBackups();
@@ -533,7 +537,7 @@ function SettingsPage({ data }: { data: AppData }) {
       </section>
       <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="font-semibold text-ink">Supabase 진단</h2>
-        <button className="mt-4 rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white" onClick={runConnectionTest}>Supabase 연결 테스트</button>
+        {!readOnly ? <button className="mt-4 rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white" onClick={runConnectionTest}>Supabase 연결 테스트</button> : null}
         {testMessage ? <p className="mt-3 text-sm font-semibold text-public">{testMessage}</p> : null}
       </section>
     </Page>
@@ -615,14 +619,20 @@ function ClientPortal({ data, setData, refreshData, isLoading, error }: { data: 
   };
   if (!allowed) return <ClientAccessGate onSuccess={handleClientAccess} />;
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
+    <Layout
+      role="client"
+      page="dashboard"
+      menu={adminMenu.filter((item) => item.id === "dashboard")}
+      onRoleChange={() => undefined}
+      onPageChange={() => undefined}
+      onLogout={() => clearClientAccess()}
+      hideRoleSwitch
+    >
       {isLoading && !refreshing ? <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">Supabase 데이터를 불러오는 중입니다.</div> : null}
       {refreshing ? <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">Supabase 데이터를 다시 불러오는 중입니다.</div> : null}
       {error ? <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div> : null}
-        <ClientPreviewSurface data={data} setData={setData} />
-      </div>
-    </div>
+      <AdminPage page="dashboard" data={data} setData={setData} readOnly />
+    </Layout>
   );
 }
 

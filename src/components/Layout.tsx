@@ -15,10 +15,11 @@ interface Props {
   onPageChange: (page: string) => void;
   onReset?: () => void;
   onLogout?: () => void;
+  hideRoleSwitch?: boolean;
   children: React.ReactNode;
 }
 
-export function Layout({ role, page, menu, onRoleChange, onPageChange, onReset, onLogout, children }: Props) {
+export function Layout({ role, page, menu, onRoleChange, onPageChange, onReset, onLogout, hideRoleSwitch, children }: Props) {
   void onReset;
 
   return (
@@ -55,10 +56,10 @@ export function Layout({ role, page, menu, onRoleChange, onPageChange, onReset, 
               ))}
             </select>
             <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-              <button className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${role === "admin" ? "bg-ink text-white" : "bg-slate-100 text-slate-600"}`} onClick={() => onRoleChange("admin")}>
+              <button className={`${hideRoleSwitch ? "hidden" : "inline-flex"} items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${role === "admin" ? "bg-ink text-white" : "bg-slate-100 text-slate-600"}`} onClick={() => onRoleChange("admin")}>
                 <ShieldCheck size={16} /> 내부관리자
               </button>
-              <button className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${role === "client" ? "bg-public text-white" : "bg-slate-100 text-slate-600"}`} onClick={() => onRoleChange("client")}>
+              <button className={`${hideRoleSwitch ? "hidden" : "inline-flex"} items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${role === "client" ? "bg-public text-white" : "bg-slate-100 text-slate-600"}`} onClick={() => onRoleChange("client")}>
                 <UserCheck size={16} /> 발주처
               </button>
               {onLogout ? (
