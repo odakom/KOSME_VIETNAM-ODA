@@ -544,20 +544,32 @@ function SettingsPage({ data }: { data: AppData }) {
 function ClientAccessGate({ onSuccess }: { onSuccess: () => void }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const disabled = !hasClientPasswordConfigured();
+  const passwordConfigured = hasClientPasswordConfigured();
+  const submit = () => {
+    if (!passwordConfigured) {
+      setError("VITE_CLIENT_ACCESS_PASSWORD is not configured. Please check deployment environment variables.");
+      return;
+    }
+    if (verifyClientPassword(password)) {
+      onSuccess();
+      return;
+    }
+    setError("Invalid password.");
+  };
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <section className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-bold text-ink">발주처 전용 접근</h1>
-        <p className="mt-2 text-sm text-slate-500">{disabled ? "발주처 접속 비밀번호 환경변수가 설정되지 않아 접근할 수 없습니다." : "공유받은 비밀번호를 입력하세요."}</p>
-        <input disabled={disabled} className="mt-5 w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-public disabled:bg-slate-100" type="password" value={password} onChange={(event) => setPassword(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && verifyClientPassword(password)) onSuccess(); }} />
+        <h1 className="text-xl font-bold text-ink">Client Access</h1>
+        <p className="mt-2 text-sm text-slate-500">
+          {passwordConfigured ? "Enter the shared client password." : "Client password is not configured. You can type here, but access is blocked until the environment variable is set."}
+        </p>
+        <input className="mt-5 w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-public" type="password" value={password} onChange={(event) => setPassword(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") submit(); }} />
         {error ? <p className="mt-2 text-sm font-semibold text-red-600">{error}</p> : null}
-        <button disabled={disabled} className="mt-4 w-full rounded-md bg-public px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50" onClick={() => { if (verifyClientPassword(password)) onSuccess(); else setError("비밀번호가 올바르지 않습니다."); }}>접속</button>
+        <button className="mt-4 w-full rounded-md bg-public px-4 py-2 text-sm font-semibold text-white" onClick={submit}>Sign in</button>
       </section>
     </div>
   );
 }
-
 function AdminLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
