@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, Trash2, Upload } from "lucide-react";
 import { ClientLayout } from "./components/ClientLayout";
@@ -48,7 +48,7 @@ const pathByPage: Record<string, string> = {
   schedule: "/schedule",
   deliverables: "/deliverables",
   comments: "/comments",
-  client: "/client/dashboard",
+  client: "/client-preview",
   risks: "/risks",
   settings: "/settings"
 };
@@ -64,6 +64,7 @@ const taskPersistKeys: (keyof Task)[] = ["title", "owner", "status", "startDate"
 
 function pageFromPath(pathname: string) {
   const segment = pathname.replace(/^\/+/, "").split("/")[0] || "dashboard";
+  if (segment === "client-preview") return "client";
   return segment === "checklist" ? "tasks" : segment;
 }
 
@@ -603,6 +604,11 @@ function ClientPortal({ data, setData, refreshData }: { data: AppData; setData: 
   const [allowed, setAllowed] = useState(hasClientAccess());
   const [refreshing, setRefreshing] = useState(false);
   const view = clientViewFromPath(location.pathname);
+  useEffect(() => {
+    if (!allowed) return;
+    setRefreshing(true);
+    refreshData().finally(() => setRefreshing(false));
+  }, [allowed, refreshData]);
   const handleClientAccess = async () => {
     setAllowed(true);
     setRefreshing(true);
@@ -626,7 +632,7 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const [role, setRole] = useState<Role>("admin");
-  if (location.pathname.startsWith("/client")) return <ClientPortal data={data} setData={setData} refreshData={refreshFromSupabase} />;
+  if (location.pathname === "/client" || location.pathname.startsWith("/client/")) return <ClientPortal data={data} setData={setData} refreshData={refreshFromSupabase} />;
   if (isClientOnlyDeploy()) return <Navigate to="/client/dashboard" replace />;
   if (location.pathname === "/login") return <AdminLoginPage />;
   if (!hasAdminAccess()) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
