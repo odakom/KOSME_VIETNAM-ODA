@@ -6,8 +6,7 @@ const ADMIN_ACCESS_KEY = "odakom-admin-access";
 export type AuthRole = Extract<Role, "admin" | "client">;
 
 export function isClientOnlyDeploy() {
-  const isVercelHost = typeof window !== "undefined" && window.location.hostname.endsWith("vercel.app");
-  return import.meta.env.VITE_CLIENT_ONLY_DEPLOY === "true" || isVercelHost;
+  return import.meta.env.VITE_CLIENT_ONLY_DEPLOY === "true";
 }
 
 function getEnvPassword(key: "VITE_CLIENT_ACCESS_PASSWORD" | "VITE_ADMIN_ACCESS_PASSWORD") {
