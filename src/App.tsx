@@ -623,7 +623,7 @@ function ClientPortal({ data, setData, refreshData, isLoading, error }: { data: 
       {isLoading && !refreshing ? <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">Supabase 데이터를 불러오는 중입니다.</div> : null}
       {refreshing ? <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">Supabase 데이터를 다시 불러오는 중입니다.</div> : null}
       {error ? <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div> : null}
-      <AdminPage page="dashboard" data={data} setData={setData} readOnly />
+      <AdminPage page="dashboard" data={data} setData={setData} />
     </Layout>
   );
 }
